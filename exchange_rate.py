@@ -24,6 +24,7 @@ def get_url(url):
     This function makes a call to the APILAYER and returns the API response
     """
     try:
+        print('URL => ', url)
         load_dotenv()
         payload = {}
         headers= {
@@ -31,6 +32,7 @@ def get_url(url):
             }
         response = requests.request("GET", url, headers=headers, data = payload)
         status_code = response.status_code
+        print(f"API call status_code is => {status_code}")
         content = response.text
         return status_code, content
     except requests.exceptions.RequestException as e:
@@ -40,12 +42,14 @@ def get_url(url):
 def get_currencies_list(target=None):
     baseurl = "https://api.apilayer.com/fixer"
     url = f"{baseurl}/symbols"
-    #print('URL', url)
     status_code, content = get_url(url)
     currencies = json.loads(content)
     currency_list = list(currencies['symbols'].keys())
-    return currency_list
-
+    
+    if status_code == 200:
+        return currency_list
+    else:
+        return None
 
 def load_currency_history(from_currency, to_currency, target=None):
     """
@@ -56,17 +60,15 @@ def load_currency_history(from_currency, to_currency, target=None):
     end_date = datetime. today().strftime("%Y-%m-%d")         #returns 2020-01-01
     start_date = (datetime.today() - timedelta(days=30)).strftime("%Y-%m-%d")
     base_currency = ''''''+from_currency+''''''
-    symbols = from_currency.upper() + "," + to_currency.upper()
+    symbols = from_currency + "," + to_currency
 
     url = "{0}timeseries?start_date={1}&end_date={2}&base={3}&symbols={4}".format(baseurl,start_date,end_date,base_currency,symbols)
-    #print('URL', url)
     status_code, content = get_url(url)
-    #print(status_code, content)
     
     if status_code == 200:
         with open("currency_history.json", 'w', encoding='utf-8') as f:
             f.write(content)  
-            print("JSON file created here '",os.path.realpath(f.name),"'")
+            print("JSON file created here =>'",os.path.realpath(f.name),"'")
     else:
         return None
 
@@ -88,7 +90,7 @@ def pre_process_history(from_currency, to_currency, target=None):
     headerList = ['CURRENCY_DATE', 'FROM_CURRENCY', 'TO_CURRENCY']
     file.to_csv("currency_history.csv", header=headerList, index=False) 
     os.remove("temp.csv")
-    print("CSV file created here '",os.path.realpath(processed_file),"'")
+    print("Pr-processed CSV file created here =>'",os.path.realpath(processed_file),"'")
 
     
 def perform_data_analysis(target=None):
@@ -119,9 +121,11 @@ from_currency = input("Enter from currency code:")
 to_currency = input("Enter to currency code:")
 currency_list = get_currencies_list()
 
-if input_validation(from_currency.upper(), currency_list) == 0 & input_validation(to_currency.upper(), currency_list) == 0:
-    load_currency_history(from_currency, to_currency)
-    pre_process_history(from_currency, to_currency)
-    perform_data_analysis()
+if input_validation(from_currency.upper(), currency_list) != 0:
+    print(f"*** ERROR: From_Currency code is invalid. \nFrom_currency = {from_currency}")
+elif input_validation(to_currency.upper(), currency_list) != 0:
+    print(f"*** ERROR: To_Currency code is invalid. \nTo_currency = {to_currency}")    
 else:
-    raise Exception("Currency code exception occurred")
+    load_currency_history(from_currency.upper(), to_currency.upper())
+    pre_process_history(from_currency.upper(), to_currency.upper())
+    perform_data_analysis()
