@@ -49,6 +49,7 @@ The project aims to do a case study for limited features.
 - CSV
 - Pandas
 - Matplotlib
+- dotenv
 
 ## How to Run the Program
 
